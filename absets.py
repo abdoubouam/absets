@@ -33,36 +33,64 @@ bpy.ops.image.open(filepath="/home/abdou/Desktop/blender/images/HDRI/studio3.exr
 , "name":"studio3.exr"}], relative_path=False, show_multiview=False)
 
 """
-def absetup():
-	"""
-	prepare the scene for a studio rendering
-	to_do :
-		set up an HDRI environment
-		A proper compositor node, possibly for denoise
-	"""
-	abenv=/home/abdou/Desktop/blender/images/HDRI/studio3.exr
-	bpy.ops.scene.new(type='absrender')
-	bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(-1,-1,1), \
-	rotation=(pi/4,0.0,-pi/4), layers=(True, False, False, False, False, False, False, False\
-	, False, False, False, False, False, False, False, False, False, False, False, False))
-	abscene=bpy.context.scene
-	abscene.engine = 'CYCLES'
-	abscene.cycles.caustics_reflective = False
-	abscene.cycles.caustics_refractive = False
-	abscene.cycles.glossy_bounces = 2
-	abscene.cycles.diffuse_bounces = 2
-	abscene.cycles.transmission_bounces = 6
-	abscene.cycles.volume_bounces = 1
-	abscene.cycles.min_bounces = 2
-	abscene.cycles.transparent_min_bounces = 8
-	abscene.cycles.transparent_max_bounces = 8
-	abscene.render.resolution_y = 256
-	abscene.render.resolution_x = 256
-	bpy.context.scene.render.resolution_percentage = 100
-	bpy.context.scene.cycles.samples = 128
-	bpy.context.scene.cycles.sample_clamp_direct = 5
-	bpy.context.scene.cycles.sample_clamp_indirect = 2
-	bpy.context.space_data.lock_camera = True
+def abset_env():
+    #import HDR
+    img_path="~/Desktop/blender/images/HDRI/studio3.exr"
+    path =os.path.expanduser(img_path)
+    img=bpy.data.images.load(path)
+    img.name="studio"
+    world = bpy.context.scene.world
+    nodetree=world.node_tree.nodes
+    #clean everything and start from scratch
+    for node in nodetree:
+        nodetree.remove(node)
+        #add environment nodes
+    node_out=nodetree.new(type="ShaderNodeOutputWorld")
+    node_bg=nodetree.new(type="ShaderNodeBackground")
+    node_tex=nodetree.new(type="ShaderNodeTexEnvironment")
+    node_tex.image=bpy.data.images.get("studio")
+    #attach nodes
+    world.node_tree.links.new(node_tex.outputs[0],node_bg.inputs[0])
+    world.node_tree.links.new(node_bg.outputs[0],node_out.inputs[0])
+def abset_cam():
+    #create camera
+    cam = bpy.data.cameras.new("Absets_cam")
+    cam_ob = bpy.data.objects.new("Absets_cam", cam)
+    bpy.context.scene.objects.link(cam_ob)
+    #translate and rotate
+    cam_ob.location=[-10,-10,10]
+    cam_ob.rotation_euler=[pi/3,0,-pi/4]
+    #make larger lens to zoom in
+    bpy.data.objects['Absets_cam'].data.lens=40
+    bpy.context.scene.camera = bpy.data.objects['Absets_cam']
+    #select everything and fit to the view
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.view3d.camera_to_view_selected()
+    #zoom out a little
+    bpy.data.objects['Absets_cam'].data.lens=35
+def abset_scene():
+    #adjust scene settings
+    abscene=bpy.context.scene
+    abscene.render.engine = 'CYCLES'
+    abscene.cycles.caustics_reflective = False
+    abscene.cycles.caustics_refractive = False
+    abscene.cycles.glossy_bounces = 2
+    abscene.cycles.diffuse_bounces = 2
+    abscene.cycles.transmission_bounces = 6
+    abscene.cycles.volume_bounces = 1
+    abscene.cycles.min_bounces = 2
+    abscene.cycles.transparent_min_bounces = 8
+    abscene.cycles.transparent_max_bounces = 8
+    abscene.render.resolution_y = 256
+    abscene.render.resolution_x = 256
+    abscene.render.pixel_aspect_x = 1
+    abscene.render.pixel_aspect_y = 1
+    bpy.context.scene.render.resolution_percentage = 100
+    bpy.context.scene.cycles.samples = 64
+    bpy.context.scene.cycles.sample_clamp_direct = 5
+    bpy.context.scene.cycles.sample_clamp_indirect = 2
+    abset_env()
+    abset_cam()
 
 def abmake():
 	"""
